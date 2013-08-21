@@ -2,21 +2,39 @@
   function GLProgram(canvas) {
     this.context = canvas.getContext('webgl');
     this.context.enable(this.context.DEPTH_TEST);
+    this.program = this.context.createProgram();
   }
 
   GLProgram.prototype = Object.create(Observable);
 
   GLProgram.prototype.initialize = function() {
-    var fragmentShader = requestShaderSource('./shaders/shader.fs', shaderCompiler('fragment', this.context));
-    var vertexShader = requestShaderSource('./shaders/shader.vs', shaderCompiler('vertex', this.context));
-    this.trigger('initialized');
+    var context = this;
+    async.map(
+      [{ url: './shaders/shader.fs', type: 'fragment' }, { url: './shaders/shader.vs', type: 'vertex' }], 
+      fetchAndCompileShader(this.context, this.program),
+      programLinker(this.context, this.program, function() {
+        context.trigger.call(context, 'initialized');
+      })
+    );
   };
 
-  var requestShaderSource = function(url, callback) {
-    request = new Request(url, callback).open();
+  var programLinker = function(context, program, callback) {
+    return function(error, shaders) {
+      shaders.forEach(function(shader) {
+        context.attachShader(program, shader);
+      });
+      context.linkProgram(program);
+      callback();
+    };
   };
 
-  var shaderCompiler = function(type, context) {
+  var fetchAndCompileShader = function(context, program) {
+    return function(shaderOptions, callback) {
+      request(shaderOptions.url, shaderCompiler(shaderOptions.type, context, callback)).call();
+    };
+  };
+
+  var shaderCompiler = function(type, context, callback) {
     var glType = type == 'fragment' ? context.FRAGMENT_SHADER : context.VERTEX_SHADER;
     return function(source) {
       var handle = context.createShader(glType);
@@ -24,9 +42,8 @@
       context.compileShader(handle);
       if (!context.getShaderParameter(handle, context.COMPILE_STATUS)) {
         console.log(context.getShaderInfoLog(handle));
-        return null;
       }
-      return handle;
+      callback(null, handle);
     };
   };
 

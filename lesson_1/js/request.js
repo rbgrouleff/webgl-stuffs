@@ -1,24 +1,20 @@
 (function() {
-  function Request(url, callback, context) {
-    this.url = url;
-    this.callback = callback;
-    this.context = context;
-    this.rawRequest = new XMLHttpRequest();
+  function request(url, callback) {
+    return function() {
+      var req = new XMLHttpRequest();
+      req.onreadystatechange = readyStateChanged(req, callback);
+      req.open('GET', url, true);
+      req.send();
+    };
   };
 
-  Request.prototype = {
-    open: function() {
-      var context = this;
-      this.rawRequest.onreadystatechange = function() { context.stateChanged.call(context); };
-      this.rawRequest.open('GET', this.url, true);
-      this.rawRequest.send();
-    },
-    stateChanged: function() {
-      if (this.rawRequest.readyState === 4) {
-        this.callback.apply(this.context, [this.rawRequest.responseText]);
+  function readyStateChanged(request, callback) {
+    return function() {
+      if (request.readyState === 4) {
+        callback(request.responseText);
       }
-    }
+    };
   };
 
-  this.Request = Request;
+  this.request = request;
 }).call(this);
