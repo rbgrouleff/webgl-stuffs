@@ -1,6 +1,6 @@
 (function() {
-  function Shape(context, vertices, itemSize, numItems) {
-    this.context = context,
+  function Shape(program, vertices, itemSize, numItems) {
+    this.program = program,
     this.vertices = vertices,
     this.itemSize = itemSize,
     this.numItems = numItems;
@@ -9,9 +9,7 @@
 
   Shape.prototype = {
     init: function() {
-      this.buffer = this.context.createBuffer();
-      this.context.bindBuffer(this.context.ARRAY_BUFFER, this.buffer);
-      this.context.bufferData(this.context.ARRAY_BUFFER, new Float32Array(this.vertices), this.context.STATIC_DRAW);
+      this.buffer = this.program.createBuffer(this.vertices);
     },
 
     draw: function() {
